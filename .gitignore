@@ -1,0 +1,7 @@
+# Project exclude paths
+/out/
+/target/
+*.sql
+*.zip
+*.MF
+*.sh
