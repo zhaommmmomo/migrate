@@ -6,8 +6,12 @@ import com.migrate.component.Reader;
 import com.migrate.component.Writer;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -20,19 +24,19 @@ import java.util.concurrent.Executors;
 public class MigrateManager {
 
     @Parameter(names = {"--data_path"})
-    public static String DataPath = "";
+    public static String path = "";
 
     @Parameter(names = {"--dst_ip"})
-    public static String DstIP = "";
+    public static String ip = "";
 
     @Parameter(names = {"--dst_port"})
-    public static Integer DstPort = 0;
+    public static Integer port = 0;
 
     @Parameter(names = {"--dst_user"})
-    public static String DstUser = "";
+    public static String user = "";
 
     @Parameter(names = {"--dst_password"})
-    public static String DstPassword = "";
+    public static String pwd = "";
 
     /** 数据处理器 */
     private DataProcess dataProcess;
@@ -60,19 +64,38 @@ public class MigrateManager {
 
     /**
      * 记录目录结构
-     * list  []   list
-     * src_1 a    100 101 ...
-     *       ...
-     *       g
-     * src_2 a    100 101 ...
-     *       ...
-     *       g
+     * |------------src1-----------|----------- src2-----------|
+     * |_a_|_b_|_c_|_d_|_e_|_f_|_g_|_a_|_b_|_c_|_d_|_e_|_f_|_g_|
+     * 100                        ...                       100
+     * 101                        ...                       101
+     *                            ...
+     * 4xx                        ...                       4xx
      */
-    private List<List<File>[]> files = new ArrayList<>();
+    private final List<File>[] files = new ArrayList[14];
+
+    /**
+     * 记录创建表的sql语句
+     * |_a_|_b_|_c_|_d_|_e_|_f_|_g_|
+     * 1.sql        ...
+     * 2.sql        ...
+     * 3.sql        ...
+     * 4.sql        ...
+     */
+    private List<String>[] tableSql = new ArrayList[7];
+
+    /** 记录每个表的insert格式 */
+    private List<String>[] insertSql = new ArrayList[7];
 
     /** 源数据库个数 */
     private int srcCount;
     private int currentFileNums;
+
+    public MigrateManager() {
+        for (int i = 0; i < 7; i++) {
+            tableSql[i] = new ArrayList<>();
+            insertSql[i] = new ArrayList<>();
+        }
+    }
 
     /**
      * 程序初始化方法
@@ -90,22 +113,6 @@ public class MigrateManager {
                 // 当所有reader线程读取某一文件完成后，判断next文件是否与当前读取的文件相差1
 
                 // 判断每个reader的接下来一个文件是否还是当前表的数据
-
-
-
-                //for (int i = 0; i < srcCount; i++) {
-                //    files.get(i)[readingDB].get()
-                //}
-                //
-                //int currentFileName = Integer.parseInt(files.get());
-                //
-                //
-                //readingIndex++;
-                //if (readingIndex >= currentFileNums) {
-                //    readingDB++;
-                //    readingIndex = 0;
-                //}
-
             }
         });
     }
@@ -128,17 +135,59 @@ public class MigrateManager {
      * 加载文件目录结构
      */
     public void loadFile() {
+        walPath = path + "/migrate.wal";
+        File wal = new File(walPath);
+        boolean flag = wal.exists();
+        int srcIndex = 0;
+        String filename;
+        try {
+            for (File src : new File(path).listFiles()) {
 
+                if (src.getName().endsWith("wal")) {
+                    continue;
+                }
+                int dbIndex = 0;
+                for (File db : src.listFiles()) {
+                    for (File file : db.listFiles()) {
+                        filename = file.getName();
+                        if (filename.endsWith("v")) {
+                            continue;
+                        }
+                        if (filename.endsWith("l")) {
+                            tableSql[dbIndex].add(parseSqlFile(file));
+                            continue;
+                        }
+                        files[srcIndex].add(file);
+                    }
+                    dbIndex++;
+                    srcIndex++;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 解析sql文件
+     * 需要获取对应的insert sql语句
+     * 类型、字段、key
+     * @param file          sql文件
+     */
+    private String parseSqlFile(File file) {
+
+        return null;
     }
 
     /**
      * 打印参数信息
      */
     public void printInput() {
-        System.out.printf("data path:%s\n",DataPath);
-        System.out.printf("dst ip:%s\n",DstIP);
-        System.out.printf("dst port:%d\n",DstPort);
-        System.out.printf("dst user:%s\n",DstUser);
-        System.out.printf("dst password:%s\n",DstPassword);
+        System.out.printf("data path:%s\n",path);
+        System.out.printf("dst ip:%s\n",ip);
+        System.out.printf("dst port:%d\n",port);
+        System.out.printf("dst user:%s\n",user);
+        System.out.printf("dst password:%s\n",pwd);
     }
 }
