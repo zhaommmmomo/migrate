@@ -7,8 +7,16 @@ package com.migrate.component;
  */
 public class Writer implements Runnable {
 
+    private final Block block;
+    private final DataProcess dp;
+
+    public Writer(Block block, DataProcess dataProcess) {
+        this.block = block;
+        this.dp = dataProcess;
+    }
+
     @Override
     public void run() {
-
+        dp.getDatasource(block.getDb());
     }
 }

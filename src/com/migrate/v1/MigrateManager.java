@@ -187,10 +187,13 @@ public class MigrateManager {
                         ps.executeBatch();
                     }
                     String[] split = line.split(",");
+
+
                     ps.setLong(1, Long.parseLong(split[0]));
                     ps.setFloat(2, Float.parseFloat(split[1]));
                     ps.setString(3, split[2]);
                     ps.setDate(4, data.parseStringToDate(split[3]));
+
                     ps.addBatch();
                     count++;
                 }

@@ -14,6 +14,6 @@ public class Bootstrap {
         JCommander.newBuilder().addObject(manager).build().parse(args);
         manager.printInput();
         // 启动
-        manager.run();
+        manager.start();
     }
 }
