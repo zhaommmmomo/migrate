@@ -1,5 +1,8 @@
 package com.migrate.component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 负责保存中间数据
  * @author zmm
@@ -7,40 +10,74 @@ package com.migrate.component;
  */
 public class Block {
 
+    /** 源库 */
+    private final int src;
     /** 库编号 */
     private final int db;
     /** 文件编号 */
-    private final int index;
+    private final int fIndex;
+    /** 最后一行在文件中的行数 */
+    private long fLine;
+    /** 当前block的最后一行是否是文件的最后一行 */
+    private boolean end;
 
-    private int count = 0;
-    private String sql;
-    private String[] data;
-    private int colCount = 0;
+    private final String sql;
+    private List<String> data;
 
-    public Block(int db, int index, String sql) {
+    public Block(int src, int db, int fIndex, String sql) {
+        this.src = src;
         this.db = db;
-        this.index = index;
+        this.fIndex = fIndex;
         this.sql = sql;
+        data = new ArrayList<>();
     }
 
     public void add(String data) {
+        this.data.add(data);
+    }
 
+    public int getSrc() {
+        return src;
     }
 
     public int getDb() {
         return db;
     }
 
-    private int getIndex() {
-        return index;
+    public int getFIndex() {
+        return fIndex;
     }
 
-    public int count() {
-        return count;
+    public void setEnd() {
+        end = true;
     }
 
+    public void setFLine(long fLine) {
+        this.fLine = fLine;
+    }
+
+    public long getFLine() {
+        return this.fLine;
+    }
+
+    public boolean isEnd() {
+        return end;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public List<String> getData() {
+        return data;
+    }
+
+    public int size() {
+        return data.size();
+    }
 
     public void clear() {
-
+        data.clear();
+        data = null;
     }
 }

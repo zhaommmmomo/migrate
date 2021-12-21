@@ -4,22 +4,16 @@ import com.beust.jcommander.Parameter;
 import com.migrate.component.DataProcess;
 import com.migrate.component.Reader;
 import com.migrate.component.Sign;
-import com.migrate.component.Writer;
+import com.migrate.util.FileUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author zmm
@@ -49,23 +43,6 @@ public class MigrateManager {
     private Thread reader1;
     private Thread reader2;
 
-
-
-    /** 记录当前正在读的文件 */
-    private int readingIndex = 0;
-    /** 记录当前正在读的库 */
-    private int readingDB = 0;
-
-    /** 记录已经同步了的文件 */
-    private int syncedIndex = 0;
-    /** 记录已经同步了的库 */
-    private int syncedDB = 0;
-
-    private String walPath;
-
-    /** 每组文件读取 */
-    private CyclicBarrier cyclicBarrier;
-
     /**
      * 记录创建表的sql语句
      * |_a_|_b_|_c_|_d_|_e_|_f_|_g_|
@@ -77,14 +54,7 @@ public class MigrateManager {
     private List<String>[] tableSql = new ArrayList[7];
 
     /** 记录每个表的insert格式 */
-    private static List<String>[] insertSql = new ArrayList[7];
-
-    /** 记录每个表的字段类型 */
-    private Map<String, List<String>> types = new HashMap<>();
-
-    /** 源数据库个数 */
-    private int srcCount;
-    private int currentFileNums;
+    private static final List<String>[] insertSql = new ArrayList[7];
 
     public MigrateManager() {
         for (int i = 0; i < 7; i++) {
@@ -94,38 +64,23 @@ public class MigrateManager {
     }
 
     /**
-     * 程序初始化方法
-     */
-    private void init() {
-        // 初始化数据处理器
-        dataProcess = new DataProcess(30);
-
-        //cyclicBarrier = new CyclicBarrier(2, new Runnable() {
-        //    @Override
-        //    public void run() {
-        //        // 当所有reader线程读取某一文件完成后，判断next文件是否与当前读取的文件相差1
-        //
-        //        // 判断每个reader的接下来一个文件是否还是当前表的数据
-        //    }
-        //});
-    }
-
-    /**
      * 程序启动方法
      */
     public void start() {
+        dataProcess = new DataProcess(100);
         // 预加载文件
         loadFile();
-        // 初始化组件
-        init();
         // 运行
         run();
+        // 结束
+        end();
     }
 
     /**
      * 程序运行方法
      */
     private void run() {
+
         // 启动文件读取线程
         reader1.start();
         reader2.start();
@@ -141,32 +96,58 @@ public class MigrateManager {
     }
 
     /**
+     * 结束方法
+     */
+    public void end() {
+        dataProcess.close();
+    }
+
+    /**
      * 加载文件目录结构
      */
     public void loadFile() {
-        walPath = path + "/migrate.wal";
-        File wal = new File(walPath);
-        boolean flag = wal.exists();
+        boolean flag = new File(path + "/0.wal").exists();
         int srcIndex = 0;
         String filename;
-        List<File>[] files = new ArrayList[7];
+        List<File>[] files;
+
+        // reader1默认从a库开始读
+        int db1 = 0;
+        int fIndex1 = 0;
+        long fLine1 = 0;
+
+        // reader2默认从d库开始读
+        int db2 = 3;
+        int fIndex2 = 0;
+        long fLine2 = 0;
 
         try {
+            if (flag) {
+                // 如果wal文件存在
+                // 获取wal文件内容(记录的是 库 + 下标。例如: 0100 ... 6401)
+                String s = FileUtils.readWal(0);
+                db1 = Integer.parseInt(String.valueOf(s.charAt(0)));
+                fIndex1 = Integer.parseInt(String.valueOf(s.charAt(1)));
+                fLine1 = Long.parseLong(s.substring(2));
+                s = FileUtils.readWal(1);
+                db2 = Integer.parseInt(String.valueOf(s.charAt(0)));
+                fIndex2 = Integer.parseInt(String.valueOf(s.charAt(1)));
+                fLine2 = Long.parseLong(s.substring(2));
+            }
+
             for (File src : new File(path).listFiles()) {
 
                 if (src.getName().endsWith("wal")) {
                     continue;
                 }
                 int dbIndex = 0;
+                files = new ArrayList[7];
                 for (int i = 0; i < 7; i++) {
                     files[i] = new ArrayList<>();
                 }
                 for (File db : src.listFiles()) {
                     for (File file : db.listFiles()) {
                         filename = file.getName();
-                        if (filename.endsWith("v")) {
-                            continue;
-                        }
                         if (filename.endsWith("l")) {
                             if (srcIndex == 0) {
                                 tableSql[dbIndex].add(parseSqlFile(dbIndex, file));
@@ -174,7 +155,6 @@ public class MigrateManager {
                             continue;
                         }
                         files[dbIndex].add(file);
-
                     }
                     dbIndex++;
                 }
@@ -188,21 +168,17 @@ public class MigrateManager {
                     });
                 }
                 if (reader1 == null) {
-                    reader1 = new Thread(new Reader(syncedDB, syncedIndex, files, dataProcess));
+                    reader1 = new Thread(new Reader(0, db1, fIndex1, fLine1, files, dataProcess), "reader1");
+                    Sign.src1EndFlag = files[6].size();
                 } else {
-                    reader2 = new Thread(new Reader(syncedDB, syncedIndex, files, dataProcess));
+                    reader2 = new Thread(new Reader(1, db2, fIndex2, fLine2, files, dataProcess), "reader2");
+                    Sign.src2EndFlag = files[2].size();
                 }
             }
 
-            if (flag) {
-                // 如果wal文件存在
-                // 获取wal文件内容(记录的是 库 + 下标。例如: 0100 ... 6401)
-                String s = new String(Files.readAllBytes(wal.toPath()), StandardCharsets.UTF_8);
-                readingDB = syncedDB = Integer.parseInt(String.valueOf(s.charAt(0)));
-                readingIndex = syncedIndex = Integer.parseInt(s.substring(1));
-            } else {
+            if (!flag) {
                 buildDB();
-                writeWal();
+                FileUtils.initWal();
             }
 
             files = null;
@@ -269,6 +245,7 @@ public class MigrateManager {
             int index = str.lastIndexOf(')');
             if (key) {
                 for (String co : col) {
+                    if ("`id`".equals(co)) continue;
                     sql.append(co)
                             .append("=if(updated_at>=values(`updated_at`),")
                             .append(co)
@@ -297,7 +274,6 @@ public class MigrateManager {
             e.printStackTrace();
         }
 
-        types.put(tableName, type);
         insertSql[db].add(sql.toString());
         return str;
     }
@@ -311,42 +287,41 @@ public class MigrateManager {
         config.setDriverClassName("com.mysql.jdbc.Driver");
         config.setUsername(user);
         config.setPassword(pwd);
-        // 连接池参数
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-
-        HikariDataSource ds = new HikariDataSource(config);
-
-        try (Connection conn = ds.getConnection();
+        config.setAutoCommit(false);
+        config.setMinimumIdle(1);
+        config.setMaximumPoolSize(1);
+        try (HikariDataSource ds = new HikariDataSource(config);
+             Connection conn = ds.getConnection();
              Statement st = conn.createStatement()) {
             char c = 'a';
             while (c <= 'g') {
                 st.addBatch("create database if not exists " + c);
                 c++;
             }
-            for (int i = 0; i < 7; i++) {
-                st.addBatch("use " + c);
+            st.executeBatch();
+            conn.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        HikariDataSource ds;
+        for (int i = 0; i < 7; i++) {
+            ds = dataProcess.getDataSource(i);
+            try (Connection conn = ds.getConnection();
+                 Statement st = conn.createStatement()) {
                 for (String table : tableSql[i]) {
                     st.addBatch(table);
                 }
+                st.executeBatch();
+                conn.commit();
+                st.clearBatch();
+                tableSql[i].clear();
+                tableSql[i] = null;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            st.executeBatch();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        ds.close();
-    }
-
-    /**
-     * 写wal文件
-     */
-    private void writeWal() {
-        try (FileOutputStream out = new FileOutputStream(new File(walPath))) {
-            out.write(("" + syncedDB + syncedIndex).getBytes());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        tableSql = null;
     }
 
     /**

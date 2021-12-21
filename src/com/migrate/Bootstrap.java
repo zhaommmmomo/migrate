@@ -9,11 +9,13 @@ import com.beust.jcommander.JCommander;
 public class Bootstrap {
 
     public static void main(String[] args) {
+        long time = System.currentTimeMillis();
         MigrateManager manager = new MigrateManager();
         // 1.获取传入的参数
         JCommander.newBuilder().addObject(manager).build().parse(args);
         manager.printInput();
         // 启动
         manager.start();
+        System.out.println("time:" + (System.currentTimeMillis() - time));
     }
 }
