@@ -13,12 +13,18 @@ import java.nio.file.Files;
  */
 public class FileUtils {
 
+    private static final String path = System.getProperty("user.dir");
+
     /**
      * 初始化wal文件
      */
     public static void initWal() {
         writeWal(0,0,0, 0);
         writeWal(1,3, 0, 0);
+    }
+
+    public static boolean isExist() {
+        return new File(path + "/0.wal").exists();
     }
 
     /**
@@ -30,7 +36,7 @@ public class FileUtils {
      */
     public static void writeWal(int src , int db, int fIndex, long fLine) {
         try (FileOutputStream out = new FileOutputStream(
-                new File(MigrateManager.path + "/" + src + ".wal"))) {
+                new File(path + "/" + src + ".wal"))) {
             out.write(("" + db + fIndex + fLine).getBytes());
         } catch (Exception e) {
             e.printStackTrace();
@@ -45,11 +51,11 @@ public class FileUtils {
     public static String readWal(int src) {
         try {
             return new String(Files.readAllBytes(
-                    new File(MigrateManager.path + "/" + src + ".wal").toPath()),
+                    new File(path + "/" + src + ".wal").toPath()),
                                         StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return "00";
+        return "000";
     }
 }

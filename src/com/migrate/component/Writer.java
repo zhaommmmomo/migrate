@@ -15,11 +15,11 @@ import java.util.List;
 public class Writer implements Runnable {
 
     private final Block block;
-    private final HikariDataSource ds;
+    private final DataProcess dp;
 
-    public Writer(Block block, HikariDataSource ds) {
+    public Writer(Block block, DataProcess dp) {
         this.block = block;
-        this.ds = ds;
+        this.dp = dp;
     }
 
     @Override
@@ -29,6 +29,7 @@ public class Writer implements Runnable {
         int fIndex = block.getFIndex();
         long fLine = block.getFLine();
         List<String> data = block.getData();
+        HikariDataSource ds = dp.getDataSource(db);
         try (Connection conn = ds.getConnection();
              PreparedStatement ps = conn.prepareStatement(block.getSql())) {
             int i;
@@ -47,16 +48,15 @@ public class Writer implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        Sign.decTask();
         if (block.isEnd()) {
             fIndex++;
             fLine = 0;
         }
-
         // 1.正确性验证，是否全部同步成功了（是否结束了）
-        if (src == 0 && db == 6 || src == 1 && db == 2) {
+        if (db == 6 && src == 0 || db == 2 && src == 1) {
             // 检测是否运行结束了
-            Sign.isEnd(src, fIndex);
+            Sign.isEnd();
         }
         block.clear();
         // 2.写wal文件

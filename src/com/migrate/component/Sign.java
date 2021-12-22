@@ -10,29 +10,38 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Sign {
 
-    public static int src1EndFlag = 0;
-    public static int src2EndFlag = 0;
-    private static boolean flag1 = false;
-    private static boolean flag2 = false;
     public static final Lock lock = new ReentrantLock();
     public static Condition condition = lock.newCondition();
+    private static int task = 0;
 
-    public static void isEnd(int src, int fIndex) {
+    public static void isEnd() {
         lock.lock();
         try {
-            if (src == 0) {
-                if (fIndex == src1EndFlag) {
-                    flag1 = true;
-                }
-            } else {
-                if (fIndex == src2EndFlag) {
-                    flag2 = true;
-                }
-            }
-            if (flag1 && flag2) {
-                System.out.println("end................");
+            if (task == 0) {
                 condition.signalAll();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void incTask () {
+        lock.lock();
+        try {
+            task++;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void decTask() {
+        lock.lock();
+        try {
+            task--;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

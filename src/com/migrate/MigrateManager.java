@@ -67,7 +67,7 @@ public class MigrateManager {
      * 程序启动方法
      */
     public void start() {
-        dataProcess = new DataProcess(100);
+        dataProcess = new DataProcess(50);
         // 预加载文件
         loadFile();
         // 运行
@@ -106,7 +106,7 @@ public class MigrateManager {
      * 加载文件目录结构
      */
     public void loadFile() {
-        boolean flag = new File(path + "/0.wal").exists();
+        boolean flag = FileUtils.isExist();
         int srcIndex = 0;
         String filename;
         List<File>[] files;
@@ -169,10 +169,8 @@ public class MigrateManager {
                 }
                 if (reader1 == null) {
                     reader1 = new Thread(new Reader(0, db1, fIndex1, fLine1, files, dataProcess), "reader1");
-                    Sign.src1EndFlag = files[6].size();
                 } else {
                     reader2 = new Thread(new Reader(1, db2, fIndex2, fLine2, files, dataProcess), "reader2");
-                    Sign.src2EndFlag = files[2].size();
                 }
             }
 
@@ -244,6 +242,7 @@ public class MigrateManager {
                 .append(") on duplicate key update ");
             int index = str.lastIndexOf(')');
             if (key) {
+                // 如果有主键
                 for (String co : col) {
                     if ("`id`".equals(co)) continue;
                     sql.append(co)
@@ -256,6 +255,7 @@ public class MigrateManager {
                 sql.deleteCharAt(sql.length() - 1);
                 str = str.substring(0, index + 1) + " shardkey=" + col.get(0) + str.substring(index + 1);
             } else {
+                // 如果没有主键
                 sql.append("`updated_at`=if(updated_at>=values(`updated_at`), updated_at, values(`updated_at`))");
 
                 StringBuilder sb = new StringBuilder(str.substring(0, index)).append(" ,PRIMARY KEY `uk` (");
@@ -284,7 +284,7 @@ public class MigrateManager {
     private void buildDB() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:mysql://" + ip + ":" + port + "/?useSSL=false&verifyServerCertificate=false");
-        config.setDriverClassName("com.mysql.jdbc.Driver");
+        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
         config.setUsername(user);
         config.setPassword(pwd);
         config.setAutoCommit(false);
@@ -337,11 +337,11 @@ public class MigrateManager {
     /**
      * 打印参数信息
      */
-    public void printInput() {
-        System.out.printf("data path:%s\n",path);
-        System.out.printf("dst ip:%s\n",ip);
-        System.out.printf("dst port:%d\n",port);
-        System.out.printf("dst user:%s\n",user);
-        System.out.printf("dst password:%s\n",pwd);
-    }
+    //public void printInput() {
+    //    System.out.printf("data path:%s\n",path);
+    //    System.out.printf("dst ip:%s\n",ip);
+    //    System.out.printf("dst port:%d\n",port);
+    //    System.out.printf("dst user:%s\n",user);
+    //    System.out.printf("dst password:%s\n",pwd);
+    //}
 }

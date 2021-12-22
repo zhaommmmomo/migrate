@@ -7,6 +7,9 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 负责处理数据
@@ -24,20 +27,28 @@ public class DataProcess {
     /** 配置 */
     private final HikariConfig config;
 
+    private final int signCount;
+    private final int awaitCount;
+
+    private final Lock lock = new ReentrantLock();
+    private final Condition sign = lock.newCondition();
+
     public DataProcess(int cap) {
+        signCount = cap / 5;
+        awaitCount = cap * 4 / 5;
         // 初始化数据同步器
-        writerPool = new ThreadPoolExecutor(8,
-                                        64,
+        writerPool = new ThreadPoolExecutor(16,
+                                        16,
                                            0L,
                                                         TimeUnit.MILLISECONDS,
                                                         new LinkedBlockingQueue<>(cap));
 
         config = new HikariConfig();
-        config.setDriverClassName("com.mysql.jdbc.Driver");
+        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
         config.setUsername(MigrateManager.user);
         config.setPassword(MigrateManager.pwd);
         config.setMinimumIdle(4);
-        config.setMaximumPoolSize(64);
+        config.setMaximumPoolSize(32);
         config.setAutoCommit(false);
         config.setMaxLifetime(60000);
         // 连接池参数
@@ -49,7 +60,18 @@ public class DataProcess {
     }
 
     public void addTask(Block block) {
-        writerPool.submit(new Writer(block, getDataSource(block.getDb())));
+        lock.lock();
+        try {
+            if (writerPool.getQueue().size() >= awaitCount) {
+                sign.await();
+            }
+            Sign.incTask();
+            writerPool.submit(new Writer(block, this));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public HikariDataSource getDataSource(int db) {
@@ -58,6 +80,17 @@ public class DataProcess {
             String urlEnd = "?useSSL=false&verifyServerCertificate=false";
             config.setJdbcUrl(url + ((char) (db + 'a')) + urlEnd);
             dataSources[db] = new HikariDataSource(config);
+        } else {
+            lock.lock();
+            try {
+                if (writerPool.getQueue().size() <= signCount) {
+                    sign.signalAll();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
         }
         return dataSources[db];
     }
