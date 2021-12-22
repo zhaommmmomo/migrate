@@ -107,6 +107,7 @@ public class MigrateManager {
      */
     public void loadFile() {
         boolean flag = FileUtils.isExist();
+        System.out.println("wal文件是否存在：" + flag);
         int srcIndex = 0;
         String filename;
         List<File>[] files;
@@ -200,7 +201,7 @@ public class MigrateManager {
         // 类型
         List<String> type = new ArrayList<>();
         try {
-            str = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            str = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8).replaceFirst("UNIQUE", "PRIMARY");
             int start = str.indexOf(point);
             int end = str.indexOf(point, start + 1);
 
@@ -253,7 +254,7 @@ public class MigrateManager {
                             .append(")),");
                 }
                 sql.deleteCharAt(sql.length() - 1);
-                str = str.substring(0, index + 1) + " shardkey=" + col.get(0) + str.substring(index + 1);
+                str = str.substring(0, index + 1) + " shardkey=id" + str.substring(index + 1);
             } else {
                 // 如果没有主键
                 sql.append("`updated_at`=if(updated_at>=values(`updated_at`), updated_at, values(`updated_at`))");
@@ -318,7 +319,7 @@ public class MigrateManager {
                 tableSql[i].clear();
                 tableSql[i] = null;
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
         tableSql = null;
@@ -337,11 +338,11 @@ public class MigrateManager {
     /**
      * 打印参数信息
      */
-    //public void printInput() {
-    //    System.out.printf("data path:%s\n",path);
-    //    System.out.printf("dst ip:%s\n",ip);
-    //    System.out.printf("dst port:%d\n",port);
-    //    System.out.printf("dst user:%s\n",user);
-    //    System.out.printf("dst password:%s\n",pwd);
-    //}
+    public void printInput() {
+        System.out.printf("data path:%s\n",path);
+        System.out.printf("dst ip:%s\n",ip);
+        System.out.printf("dst port:%d\n",port);
+        System.out.printf("dst user:%s\n",user);
+        System.out.printf("dst password:%s\n",pwd);
+    }
 }

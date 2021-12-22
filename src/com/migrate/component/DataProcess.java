@@ -37,8 +37,8 @@ public class DataProcess {
         signCount = cap / 5;
         awaitCount = cap * 4 / 5;
         // 初始化数据同步器
-        writerPool = new ThreadPoolExecutor(16,
-                                        16,
+        writerPool = new ThreadPoolExecutor(20,
+                                        20,
                                            0L,
                                                         TimeUnit.MILLISECONDS,
                                                         new LinkedBlockingQueue<>(cap));

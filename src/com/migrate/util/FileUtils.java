@@ -39,7 +39,7 @@ public class FileUtils {
                 new File(path + "/" + src + ".wal"))) {
             out.write(("" + db + fIndex + fLine).getBytes());
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
@@ -49,12 +49,13 @@ public class FileUtils {
      * @return          wal内容
      */
     public static String readWal(int src) {
-        try {
-            return new String(Files.readAllBytes(
-                    new File(path + "/" + src + ".wal").toPath()),
-                                        StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            e.printStackTrace();
+        File file = new File(path + "/" + src + ".wal");
+        if (file.exists()) {
+            try {
+                return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return "000";
     }
