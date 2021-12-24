@@ -43,8 +43,8 @@ public class Writer implements Runnable {
                 ps.addBatch();
             }
             ps.executeBatch();
-            ps.clearBatch();
             conn.commit();
+            ps.clearBatch();
         } catch (Exception e) {
             e.printStackTrace();
         }

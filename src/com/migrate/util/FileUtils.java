@@ -1,6 +1,7 @@
 package com.migrate.util;
 
 import com.migrate.MigrateManager;
+import com.migrate.component.Sign;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,11 +36,15 @@ public class FileUtils {
      * @param fLine         已同步的行下标
      */
     public static void writeWal(int src , int db, int fIndex, long fLine) {
+        Sign.lock.lock();
         try (FileOutputStream out = new FileOutputStream(
                 new File(path + "/" + src + ".wal"))) {
             out.write(("" + db + fIndex + fLine).getBytes());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            System.out.println("writeWalErr: " + path + "/" + src + ".wal");
+            e.printStackTrace();
+        } finally {
+            Sign.lock.unlock();
         }
     }
 

@@ -67,7 +67,7 @@ public class MigrateManager {
      * 程序启动方法
      */
     public void start() {
-        dataProcess = new DataProcess(50);
+        dataProcess = new DataProcess(25);
         // 预加载文件
         loadFile();
         // 运行
@@ -107,7 +107,7 @@ public class MigrateManager {
      */
     public void loadFile() {
         boolean flag = FileUtils.isExist();
-        System.out.println("wal文件是否存在：" + flag);
+        System.out.println("wal is exist: " + flag);
         int srcIndex = 0;
         String filename;
         List<File>[] files;
@@ -225,8 +225,11 @@ public class MigrateManager {
                         case "do": type.add("double"); values.append(s); break;
                         case "in": type.add("int"); values.append(s); break;
                         case "da": type.add("datetime"); values.append(s); break;
-                        default:   if (str.charAt(start - 3) == 'Y' || str.charAt(start - 2) == 'Y') {
-                                        key = true;
+                        default:   if (str.charAt(start - 3) == 'Y') {
+                                       if ("`4`".equals(tableName)) {
+                                           str = str.substring(0, start - 5) + "PRIMARY " + str.substring(start - 5);
+                                       }
+                                       key = true;
                                    }
                                    break out;
                     }

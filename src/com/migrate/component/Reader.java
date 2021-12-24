@@ -72,7 +72,7 @@ public class Reader implements Runnable{
                 while ((line = br.readLine()) != null) {
                     fLine++;
                     if (fLine <= startLine) continue;
-                    if (count == 50000) {
+                    if (count == 100000) {
                         block.setFLine(fLine);
                         dp.addTask(block);
                         block = new Block(src, i, fIndex, sql);
@@ -81,22 +81,22 @@ public class Reader implements Runnable{
                     block.add(line);
                     count++;
                 }
+                if (block.size() != 0) {
+                    block.setEnd();
+                    block.setFLine(fLine);
+                    dp.addTask(block);
+                }
+                fIndex++;
+                err = 0;
+                if (fIndex == files[i].size()) {
+                    db++;
+                    fIndex = 0;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 if (++err < 3) {
                     this.run();
                 }
-            }
-            if (block.size() != 0) {
-                block.setEnd();
-                block.setFLine(fLine);
-                dp.addTask(block);
-            }
-            fIndex++;
-            err = 0;
-            if (fIndex == files[i].size()) {
-                db++;
-                fIndex = 0;
             }
         }
     }
