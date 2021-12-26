@@ -67,7 +67,7 @@ public class MigrateManager {
      * 程序启动方法
      */
     public void start() {
-        dataProcess = new DataProcess(25);
+        dataProcess = new DataProcess(10);
         // 预加载文件
         loadFile();
         // 运行
@@ -84,6 +84,8 @@ public class MigrateManager {
         // 启动文件读取线程
         reader1.start();
         reader2.start();
+
+        System.out.println("run...");
 
         Sign.lock.lock();
         try {
@@ -225,10 +227,7 @@ public class MigrateManager {
                         case "do": type.add("double"); values.append(s); break;
                         case "in": type.add("int"); values.append(s); break;
                         case "da": type.add("datetime"); values.append(s); break;
-                        default:   if (str.charAt(start - 3) == 'Y') {
-                                       if ("`4`".equals(tableName)) {
-                                           str = str.substring(0, start - 5) + "PRIMARY " + str.substring(start - 5);
-                                       }
+                        default:   if (str.charAt(start - 3) == 'Y' && !"`4`".equals(tableName)) {
                                        key = true;
                                    }
                                    break out;

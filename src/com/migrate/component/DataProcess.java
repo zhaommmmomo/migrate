@@ -37,8 +37,8 @@ public class DataProcess {
         signCount = cap / 5;
         awaitCount = cap * 4 / 5;
         // 初始化数据同步器
-        writerPool = new ThreadPoolExecutor(16,
-                                        16,
+        writerPool = new ThreadPoolExecutor(8,
+                                        8,
                                            0L,
                                                         TimeUnit.MILLISECONDS,
                                                         new LinkedBlockingQueue<>(cap));
@@ -50,7 +50,7 @@ public class DataProcess {
         config.setMinimumIdle(4);
         config.setMaximumPoolSize(32);
         config.setAutoCommit(false);
-        config.setMaxLifetime(120000);
+        config.setMaxLifetime(150000);
         // 连接池参数
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
