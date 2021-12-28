@@ -1,6 +1,6 @@
-package com.migrate.component;
+package com.migrate.v1.component;
 
-import com.migrate.MigrateManager;
+import com.migrate.v1.MigrateManager;
 
 import java.io.BufferedReader;
 import java.io.File;

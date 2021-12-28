@@ -1,6 +1,7 @@
-package com.migrate.component;
+package com.migrate.v1.component;
 
 import com.migrate.util.FileUtils;
+import com.migrate.util.Sign;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.Connection;

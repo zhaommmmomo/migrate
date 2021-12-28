@@ -1,4 +1,4 @@
-package com.migrate.component;
+package com.migrate.util;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;

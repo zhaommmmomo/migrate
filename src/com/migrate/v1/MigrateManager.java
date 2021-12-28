@@ -1,9 +1,9 @@
-package com.migrate;
+package com.migrate.v1;
 
 import com.beust.jcommander.Parameter;
-import com.migrate.component.DataProcess;
-import com.migrate.component.Reader;
-import com.migrate.component.Sign;
+import com.migrate.v1.component.DataProcess;
+import com.migrate.v1.component.Reader;
+import com.migrate.util.Sign;
 import com.migrate.util.FileUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

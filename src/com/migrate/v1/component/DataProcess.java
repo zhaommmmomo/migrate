@@ -1,6 +1,7 @@
-package com.migrate.component;
+package com.migrate.v1.component;
 
-import com.migrate.MigrateManager;
+import com.migrate.v1.MigrateManager;
+import com.migrate.util.Sign;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 

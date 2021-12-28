@@ -1,6 +1,7 @@
 package com.migrate;
 
 import com.beust.jcommander.JCommander;
+import com.migrate.v2.MigrateManager;
 
 /**
  * @author zmm

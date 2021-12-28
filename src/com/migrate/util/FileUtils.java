@@ -1,8 +1,5 @@
 package com.migrate.util;
 
-import com.migrate.MigrateManager;
-import com.migrate.component.Sign;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
