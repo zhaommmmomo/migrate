@@ -1,6 +1,6 @@
-package com.migrate.v1.component;
+package com.migrate.component;
 
-import com.migrate.v1.MigrateManager;
+import com.migrate.MigrateManager;
 import com.migrate.util.Sign;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -38,8 +38,8 @@ public class DataProcess {
         signCount = cap / 5;
         awaitCount = cap * 4 / 5;
         // 初始化数据同步器
-        writerPool = new ThreadPoolExecutor(8,
-                                        8,
+        writerPool = new ThreadPoolExecutor(28,
+                                        28,
                                            0L,
                                                         TimeUnit.MILLISECONDS,
                                                         new LinkedBlockingQueue<>(cap));

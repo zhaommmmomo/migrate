@@ -1,4 +1,5 @@
-package com.migrate.v1.component;
+package com.migrate.component;
+
 
 import com.migrate.util.FileUtils;
 import com.migrate.util.Sign;
@@ -14,7 +15,6 @@ import java.util.List;
  * @date 2021/12/17 21:24
  */
 public class Writer implements Runnable {
-
     private final Block block;
     private final DataProcess dp;
 

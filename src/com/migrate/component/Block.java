@@ -1,4 +1,4 @@
-package com.migrate.v1.component;
+package com.migrate.component;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,10 +1,10 @@
-package com.migrate.v1;
+package com.migrate;
 
 import com.beust.jcommander.Parameter;
-import com.migrate.v1.component.DataProcess;
-import com.migrate.v1.component.Reader;
-import com.migrate.util.Sign;
+import com.migrate.component.DataProcess;
+import com.migrate.component.Reader;
 import com.migrate.util.FileUtils;
+import com.migrate.util.Sign;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -13,7 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author zmm
@@ -40,8 +41,7 @@ public class MigrateManager {
     private DataProcess dataProcess;
 
     /** 读文件线程 */
-    private Thread reader1;
-    private Thread reader2;
+    private Thread reader;
 
     /**
      * 记录创建表的sql语句
@@ -82,10 +82,9 @@ public class MigrateManager {
     private void run() {
 
         // 启动文件读取线程
-        reader1.start();
-        reader2.start();
+        reader.start();
 
-        System.out.println("run...");
+
 
         Sign.lock.lock();
         try {
@@ -114,28 +113,21 @@ public class MigrateManager {
         String filename;
         List<File>[] files;
 
-        // reader1默认从a库开始读
-        int db1 = 0;
-        int fIndex1 = 0;
-        long fLine1 = 0;
-
-        // reader2默认从d库开始读
-        int db2 = 3;
-        int fIndex2 = 0;
-        long fLine2 = 0;
+        // reader默认从a库开始读
+        int fIndex = 0;
+        long fLine = 0;
 
         try {
             if (flag) {
                 // 如果wal文件存在
                 // 获取wal文件内容(记录的是 库 + 下标。例如: 0100 ... 6401)
                 String s = FileUtils.readWal(0);
-                db1 = Integer.parseInt(String.valueOf(s.charAt(0)));
-                fIndex1 = Integer.parseInt(String.valueOf(s.charAt(1)));
-                fLine1 = Long.parseLong(s.substring(2));
                 s = FileUtils.readWal(1);
-                db2 = Integer.parseInt(String.valueOf(s.charAt(0)));
-                fIndex2 = Integer.parseInt(String.valueOf(s.charAt(1)));
-                fLine2 = Long.parseLong(s.substring(2));
+            }
+
+            files = new ArrayList[28];
+            for (int i = 0; i < 28; i++) {
+                files[i] = new ArrayList<>();
             }
 
             for (File src : new File(path).listFiles()) {
@@ -144,10 +136,7 @@ public class MigrateManager {
                     continue;
                 }
                 int dbIndex = 0;
-                files = new ArrayList[7];
-                for (int i = 0; i < 7; i++) {
-                    files[i] = new ArrayList<>();
-                }
+
                 for (File db : src.listFiles()) {
                     for (File file : db.listFiles()) {
                         filename = file.getName();
@@ -169,11 +158,6 @@ public class MigrateManager {
                         }
                         return 0;
                     });
-                }
-                if (reader1 == null) {
-                    reader1 = new Thread(new Reader(0, db1, fIndex1, fLine1, files, dataProcess), "reader1");
-                } else {
-                    reader2 = new Thread(new Reader(1, db2, fIndex2, fLine2, files, dataProcess), "reader2");
                 }
             }
 
